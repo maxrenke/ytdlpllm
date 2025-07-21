@@ -1,8 +1,8 @@
-"""Install file for llmpeg."""
+"""Install file for ytdlpllm."""
 from setuptools import setup, find_packages
 
 setup(
-    name="llmpeg",
+    name="ytdlpllm",
     version="0.1.1",
     packages=find_packages(),
     include_package_data=True,
@@ -11,7 +11,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "llmpeg = llmpeg.main:main",
+            "ytdlpllm = ytdlpllm.main:main",
         ],
     },
 )

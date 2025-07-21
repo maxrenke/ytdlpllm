@@ -1,19 +1,23 @@
 """Test for functionality of openai_llm.py."""
 import pytest
-from llmpeg.openai_llm import OpenAILLMInterface
+from ytdlpllm.openai_llm import OpenAILLMInterface
 
 
 def test_missing_openai_api_key(monkeypatch):
-    """Test the graceful exit path if OPENAI_API_KEY is not set.
+    """Test that missing OPENAI_API_KEY does not cause exit when using Ollama.
 
     Args:
         monkeypatch (_pytest.monkeypatch.MonkeyPatch): A pytest fixture
     """
     # Temporarily unset OPENAI_API_KEY
-    # raising=False makes this operation safe if the variable isn't set
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    with pytest.raises(SystemExit) as e:
-        _ = OpenAILLMInterface("gpt-3.5-turbo-0125")
-    assert e.type == SystemExit
-    assert e.value.code == 1
+    # Should not raise SystemExit when using Ollama
+    try:
+        llm = OpenAILLMInterface(
+            "llama3:latest",
+            base_url="http://localhost:11434/v1",
+            api_key="dummy-key",
+        )
+    except SystemExit:
+        pytest.fail("SystemExit was raised, but missing OPENAI_API_KEY should be allowed for Ollama.")

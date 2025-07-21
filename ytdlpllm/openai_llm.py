@@ -2,22 +2,24 @@
 from openai import OpenAI, OpenAIError
 import sys
 from typing import List, Dict
-from llmpeg.llm_interface import LLMInterface
+from ytdlpllm.llm_interface import LLMInterface
 
 
 class OpenAILLMInterface(LLMInterface):
     """Implementation of LLMInterface for OpenAI LLM API."""
 
-    def __init__(self, model_string: str):
+    def __init__(self, model_string: str, base_url: str, api_key: str):
         """Initialize OpenAI API connection and create message history.
 
         Args:
             model_string (str): The specific model to be used in API.
+            base_url (str): The base URL for the OpenAI API.
+            api_key (str): The API key for the OpenAI API.
         """
         self._model_string = model_string
 
         try:
-            self.client = OpenAI()
+            self.client = OpenAI(base_url=base_url, api_key=api_key)
         except OpenAIError as e:
             print(
                 f"OpenAI API Unable to initialize, likely due to missing API Key environment Variable: {e}",  # noqa: E501

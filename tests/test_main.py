@@ -1,7 +1,7 @@
 """Test for functionality of main.py."""
 import pytest
 from unittest.mock import patch
-from llmpeg.main import LLMPEG
+from ytdlpllm.main import YTDLPLLM
 
 
 @pytest.fixture
@@ -16,15 +16,15 @@ def mock_llm_interface(mocker):
             values.
     """
     # Create a mock LLMInterface object
-    mock = mocker.patch("llmpeg.llm_interface.LLMInterface", autospec=True)
+    mock = mocker.patch("ytdlpllm.llm_interface.LLMInterface", autospec=True)
     # Configure the mock to avoid side effects and to specify return values
     mock_instance = mock.return_value
-    mock_instance.invoke_model.return_value = '{"explanation": ["Test Explanation"], "command": "ffmpeg -i input.mp4 output.mp4"}'  # noqa: E501
+    mock_instance.invoke_model.return_value = '{"explanation": ["Test Explanation"], "command": "yt-dlp -i input.mp4 output.mp4"}'  # noqa: E501
     return mock_instance
 
 
-def test_llmpeg_run_user_confirmation(mock_llm_interface):
-    """Test LLMPEG run function with user confirming command execution.
+def test_ytdlpllm_run_user_confirmation(mock_llm_interface):
+    """Test YTDLPLLM run function with user confirming command execution.
 
     This test simulates user confirmation ('Y') and checks if the correct
     system command is executed as expected when user input is affirmative.
@@ -38,17 +38,17 @@ def test_llmpeg_run_user_confirmation(mock_llm_interface):
     with patch("builtins.input", side_effect=["Y"]), patch(
         "subprocess.run"
     ) as mock_run:
-        llmpeg = LLMPEG(llm_interface=mock_llm_interface)
-        llmpeg.run("Convert video format")
+        ytdlpllm = YTDLPLLM(llm_interface=mock_llm_interface)
+        ytdlpllm.run("Convert video format")
 
         # Ensure that subprocess.run was called with the expected command
         mock_run.assert_called_with(
-            "ffmpeg -i input.mp4 output.mp4", shell=True
+            "yt-dlp -i input.mp4 output.mp4", shell=True
         )
 
 
-def test_llmpeg_run_user_abort(mock_llm_interface):
-    """Test LLMPEG run function with user aborting command execution.
+def test_ytdlpllm_run_user_abort(mock_llm_interface):
+    """Test YTDLPLLM run function with user aborting command execution.
 
     This test verifies that no system command is executed when the user input
     indicates a decision to abort ('N').
@@ -61,32 +61,32 @@ def test_llmpeg_run_user_abort(mock_llm_interface):
     with patch("builtins.input", side_effect=["N"]), patch(
         "subprocess.run"
     ) as mock_run:
-        llmpeg = LLMPEG(llm_interface=mock_llm_interface)
-        llmpeg.run("Convert video format")
+        ytdlpllm = YTDLPLLM(llm_interface=mock_llm_interface)
+        ytdlpllm.run("Convert video format")
 
         # Ensure that subprocess.run was not called due to user cancellation
-        specific_args = ("ffmpeg -i input.mp4 output.mp4",)
+        specific_args = ("yt-dlp -i input.mp4 output.mp4",)
         assert not any(
             args == specific_args for args, _ in mock_run.call_args_list
         ), "subprocess.run was called with specific undesired arguments"
 
 
-def test_llmpeg_initialization(mock_llm_interface):
-    """Test the initialization of the LLMPEG class.
+def test_ytdlpllm_initialization(mock_llm_interface):
+    """Test the initialization of the YTDLPLLM class.
 
-    Ensures that the LLMPEG class is correctly initialized with the provided
+    Ensures that the YTDLPLLM class is correctly initialized with the provided
     LLMInterface mock.
 
     Args:
         mock_llm_interface (MagicMock): Mocked LLMInterface provided by the
             fixture.
     """
-    llmpeg = LLMPEG(llm_interface=mock_llm_interface)
-    assert llmpeg.llm_interface is mock_llm_interface
+    ytdlpllm = YTDLPLLM(llm_interface=mock_llm_interface)
+    assert ytdlpllm.llm_interface is mock_llm_interface
 
 
-def test_llmpeg_chat(mock_llm_interface):
-    """Test the chat function of the LLMPEG class.
+def test_ytdlpllm_chat(mock_llm_interface):
+    """Test the chat function of the YTDLPLLM class.
 
     Verifies that the chat function returns correct explanations and commands
     based on the mock LLMInterface's behavior.
@@ -95,16 +95,16 @@ def test_llmpeg_chat(mock_llm_interface):
         mock_llm_interface (MagicMock): Mocked LLMInterface provided by the
             fixture.
     """
-    llmpeg = LLMPEG(llm_interface=mock_llm_interface)
-    explanation, command = llmpeg.chat("Convert video format")
+    ytdlpllm = YTDLPLLM(llm_interface=mock_llm_interface)
+    explanation, command = ytdlpllm.chat("Convert video format")
     assert "Test Explanation" in explanation
-    assert "ffmpeg -i input.mp4 output.mp4" == command
+    assert "yt-dlp -i input.mp4 output.mp4" == command
 
 
-def test_missing_ffmpeg_executable(mock_llm_interface):
-    """Test the graceful exit path if ffmpeg is not found.
+def test_missing_ytdlp_executable(mock_llm_interface):
+    """Test the graceful exit path if yt-dlp is not found.
 
-    Patches the behavior of shutil.which detects the ffmpeg executable
+    Patches the behavior of shutil.which detects the yt-dlp executable
     to return None, which is the behavior if it doesn't find it.
 
     Args:
@@ -114,6 +114,6 @@ def test_missing_ffmpeg_executable(mock_llm_interface):
     with pytest.raises(SystemExit) as e, patch(
         "shutil.which", side_effect=[None]
     ):
-        _ = LLMPEG(mock_llm_interface)
+        _ = YTDLPLLM(mock_llm_interface)
     assert e.type == SystemExit
     assert e.value.code == 1

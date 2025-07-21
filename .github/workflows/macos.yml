@@ -28,7 +28,7 @@ jobs:
         pip install -r requirements.txt
         pip install -r dev-requirements.txt
         brew update
-        brew install ffmpeg
+        brew install yt-dlp
 
     - name: Run pytest
       run: |

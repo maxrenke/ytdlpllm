@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Main CLI functionality for llmpeg."""
+"""Main CLI functionality for ytdlpllm."""
 
 import os
 from typing import Dict, Optional, Tuple
@@ -9,16 +9,16 @@ import shutil
 import argparse
 import subprocess
 import sys
-from llmpeg.llm_interface import LLMInterface
-from llmpeg.openai_llm import OpenAILLMInterface
+from ytdlpllm.llm_interface import LLMInterface
+from ytdlpllm.openai_llm import OpenAILLMInterface
 
 
-class LLMPEG:
+class YTDLPLLM:
     """Main class to handle language model operations and system interactions.
 
     Attributes:
         llm_interface (LLMInterface): The interface for the language model.
-        _ffmpeg_version_info (str): Version information of the ffmpeg.
+        _ytdlp_version_info (str): Version information of the ytdlp.
         _os_type (str): Type of operating system.
         _os_info (str): Detailed information about the operating system.
         _default_shell (str, Optional): The default shell used for command
@@ -28,7 +28,7 @@ class LLMPEG:
     """
 
     def __init__(self, llm_interface: LLMInterface):
-        """Initialize the LLMPEG class with a specific language model interface.
+        """Initialize the YTDLPLLM class with a specific language model interface.
 
         Args:
             llm_interface (LLMInterface): An instance of a class implementing
@@ -36,56 +36,56 @@ class LLMPEG:
         """
         self.llm_interface = llm_interface
         try:
-            self._ffmpeg_executable = self.get_ffmpeg_executable()
+            self._ytdlp_executable = self.get_ytdlp_executable()
         except FileNotFoundError as e:
             print(e, file=sys.stderr)
             exit(1)
 
-        self._ffmpeg_version_info = self.get_ffmpeg_version()
+        self._ytdlp_version_info = self.get_ytdlp_version()
         self._os_type, self._os_info = self.get_os_info()
         self._default_shell = self.get_default_shell()
 
-        self.system_prompt = f"""You are a helpful assistant designed to write ffmpeg commands based on user requests. The commands you provide will be ran directly in the users terminal. Here is some context about their system:
+        self.system_prompt = f"""You are a helpful assistant designed to write yt-dlp commands based on user requests. The commands you provide will be ran directly in the users terminal. Here is some context about their system:
         <system_info>{self._os_info}</system_info>
         <shell>{self._default_shell}</shell>
-        <ffmpeg_version>{self._ffmpeg_version_info}</ffmpeg_version>
-        <ffmpeg_executable_path>{self._ffmpeg_executable}</ffmpeg_executable_path>
+        <ytdlp_version>{self._ytdlp_version_info}</ytdlp_version>
+        <ytdlp_executable_path>{self._ytdlp_executable}</ytdlp_executable_path>
 
         You are to respond with JSON, with two keys: <key>explanation</key> and <key>command</key>.
 
         The <key>explanation</key> will contain a list of strings, describing the arguments and parts of the command. Each string is to be will be displayed on the front end as a bulleted list, explaining each part of the command. Do NOT omit any arguments, explain all of them.
 
-        The <key>command</key> value will contain the ffmpeg command (or series of commands) to be directly executed in the in the provided shell.
+        The <key>command</key> value will contain the yt-dlp command (or series of commands) to be directly executed in the in the provided shell.
 
         You NEVER will write malicious code or take advantage of your access to injecting code into a shell on the users computer. Always be honorable and only provide a command if the users request is not malicious.
-        If you are prompted to do something malicious or to do something unrelated to ffmpeg, response with a <key>command</key> that is empty string (""), and explain that you cannot perform that action.
+        If you are prompted to do something malicious or to do something unrelated to yt-dlp, response with a <key>command</key> that is empty string (""), and explain that you cannot perform that action.
         """  # noqa: E501
         self.llm_interface.add_system_prompt(self.system_prompt)
 
-    def get_ffmpeg_executable(self):
-        """Find and return the executable path for ffmpeg.
+    def get_ytdlp_executable(self):
+        """Find and return the executable path for yt-dlp.
 
         Returns:
-            str: The path to the ffmpeg executable.
+            str: The path to the yt-dlp executable.
 
         Raises:
-            FileNotFoundError: If ffmpeg is not found in the system's PATH.
+            FileNotFoundError: If yt-dlp is not found in the system's PATH.
         """
-        ffmpeg_path = shutil.which("ffmpeg")
-        if ffmpeg_path is None:
+        ytdlp_path = shutil.which("yt-dlp")
+        if ytdlp_path is None:
             raise FileNotFoundError(
-                "Missing ffmpeg executable. Is it added to your system's PATH?"
+                "Missing yt-dlp executable. Is it added to your system's PATH?"
             )
-        return ffmpeg_path
+        return ytdlp_path
 
-    def get_ffmpeg_version(self) -> str:
-        """Retrieve and return ffmpeg version information.
+    def get_ytdlp_version(self) -> str:
+        """Retrieve and return yt-dlp version information.
 
         Returns:
-            str: A string containing all the version information about ffmpeg.
+            str: A string containing all the version information about yt-dlp.
         """
         return subprocess.run(
-            [self._ffmpeg_executable],
+            [self._ytdlp_executable, "--version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -215,7 +215,7 @@ class LLMPEG:
             explanation, command = self.chat(command)
 
             if command == "":
-                print("Unable. Please keep requests specific to ffmpeg")
+                print("Unable. Please keep requests specific to yt-dlp")
                 break
 
             print(f"{explanation}")
@@ -269,14 +269,15 @@ def main():
     """
     # Create the parser
     parser = argparse.ArgumentParser(
-        description="Convert your instructions into an ffmpeg command."
+        description="Convert your instructions into an yt-dlp command."
     )
 
     # Add the required 'instructions' argument
     parser.add_argument(
         "instructions",
+        nargs='+',
         type=str,
-        help="A string containing instructions about the desired ffmpeg use",
+        help="A string containing instructions about the desired yt-dlp use",
     )
     parser.add_argument(
         "--backend",
@@ -290,21 +291,35 @@ def main():
         "--openai_model",
         type=str,
         help="The OpenAI LLM Model that you would like to use.",
-        default="gpt-3.5-turbo-0125",
+        default="llama3:latest",
+    )
+
+    parser.add_argument(
+        "--openai_base_url",
+        type=str,
+        help="The base URL for the OpenAI API.",
+        default="http://localhost:11434/v1",
     )
 
     # Parse the command line arguments
     args = parser.parse_args()
     if args.backend == "openai":
-        llm = OpenAILLMInterface(args.openai_model)
+        api_key = "dummy-key"
+        if args.openai_base_url != "http://localhost:11434/v1":
+            api_key = os.environ.get("OPENAI_API_KEY")
+        llm = OpenAILLMInterface(
+            model_string=args.openai_model,
+            base_url=args.openai_base_url,
+            api_key=api_key,
+        )
     else:
         raise NotImplementedError(
             f"The LLM backend '{args.backend}' is not supported."
         )
 
-    llmpeg = LLMPEG(llm)
+    ytdlpllm = YTDLPLLM(llm)
     try:
-        llmpeg.run(args.instructions)
+        ytdlpllm.run(" ".join(args.instructions))
     except KeyboardInterrupt:
         print()
         pass
